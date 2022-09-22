@@ -84,6 +84,7 @@ M._fill_completion = function()
 		return
 	end
 
+	M.options.docsets = {}
 	for line in results:lines() do
 		-- since all lines follow the same pattern
 		-- <script>the_dash_name</script>
