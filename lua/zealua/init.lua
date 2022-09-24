@@ -1,3 +1,5 @@
+local select = require('zealua.select')
+
 local M = {}
 
 M.options = {
@@ -47,11 +49,9 @@ end
 -- TODO Asks for both docset and search word (if non -> use <cword>)
 -- 		Uses the M.completion for the first argument only (might need some research)
 M.zselect = function()
-	local sel = require('zealua.lua.zealua.select')
-
-	sel.open_docset_selector(M._completion, function(docset)
+	select.open_docset_selector(M._completion, function(docset)
 		print(docset)
-		sel.search_input(function(word)
+		select.search_input(function(word)
 			M._launch(docset .. ':' .. word)
 		end)
 	end)
