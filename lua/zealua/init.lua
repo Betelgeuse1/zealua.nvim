@@ -3,8 +3,8 @@ local M = {}
 M.options = {
 	location = "$HOME/.local/share/Zeal/Zeal/docsets",
 	completion_cmd = "find %s -maxdepth 4 -name Info.plist -exec grep -o -m 1 -E '<string>[a-z]*</string>' {} \\; | uniq",
-	docsets = {},
-	buffer_filetype = {},
+	install_docsets = {},
+	buffer_docset = {},
 }
 
 M.setup = function(user_config)
@@ -15,13 +15,16 @@ M.setup = function(user_config)
 	end
 
 	-- user commands
-	vim.api.nvim_create_user_command('Zeal', M.search, { nargs = '?', bang = true })
-	vim.api.nvim_create_user_command('ZealEngine', M.engine, {})
-	vim.api.nvim_create_user_command('ZealFT', M.filetype, { nargs = 1, bar = true, complete = M._completion })
+	vim.api.nvim_create_user_command('Zeal', M.zsearch, { nargs = '?', bang = true })
+	vim.api.nvim_create_user_command('ZealSelect', M.zselect, {})
+	vim.api.nvim_create_user_command('ZealFT', M.zfiletype, { nargs = 1, bar = true, complete = M._completion })
 
 	-- keymaps
-	if user_config.keymaps then
+	if M.options.auto_keymaps then
+		-- Open zeal using <cword> and M.filetype
 		vim.api.nvim_set_keymap('n', 'gz', ':Zeal<CR>', { noremap = true })
+		-- Open zeal select window
+		vim.api.nvim_set_keymap('n', 'gZ', ':ZealSelect<CR>', { noremap = true })
 	end
 end
 
@@ -29,29 +32,36 @@ end
 --==========              Zeal              ==========
 --====================================================
 
-M.search = function(cmd)
-	local filetype = M._get_filetype()
+M.zsearch = function(cmd)
+	local docset = M._get_docset()
 	local word = cmd.args ~= '' and cmd.fargs[1] or vim.fn.expand('<cword>')
 
-	local search
-	if cmd.bang then
-		search = word
-	else
-		search = string.format('%s:%s', filetype, word)
+	local search = word
+	if not cmd.bang then
+		search = string.format('%s:%s', docset, word)
 	end
 
 	M._launch(search)
 end
 
-M.engine = function(cmd)
-	-- TODO Asks for both docset and search word (if non -> use <cword>)
-	-- 		Uses the M.completion for the first argument only (might need some research)
+-- TODO Asks for both docset and search word (if non -> use <cword>)
+-- 		Uses the M.completion for the first argument only (might need some research)
+M.zselect = function()
+	local sel = require('zealua.lua.zealua.select')
+
+	sel.open_docset_selector(M._completion, function(docset)
+		print(docset)
+		sel.search_input(function(word)
+			M._launch(docset .. ':' .. word)
+		end)
+	end)
+
 end
 
 -- Use to correct incoherent buffer filetype
-M.filetype = function(cmd)
+M.zfiletype = function(cmd)
 	local bufnr = vim.fn.bufnr()
-	M.options.buffer_filetype[bufnr] = cmd.fargs[1]
+	M.options.buffer_docset[bufnr] = cmd.fargs[1]
 end
 
 --====================================================
@@ -62,19 +72,31 @@ M._launch = function(search)
 	M._clear_hit_enter()
 end
 
-M._get_filetype = function()
+M._get_docset = function()
 	local bufnr = vim.fn.bufnr()
 
-	return M.options.buffer_filetype[bufnr] or vim.bo.filetype
+	return M.options.buffer_docset[bufnr] or vim.bo.filetype
 end
 
-M._completion = function(_, _, _)
-	-- lazy loading docsets completion when they're first needed
-	if #M.options.docsets == 0 then
+M._completion = function(current, _, _)
+	-- lazy loading docsets for completion when they're first needed
+	-- MAYBE: switch to file based solution (load/save from/to a docsets.lua)
+	if #M.options.install_docsets == 0 then
 		M._fill_completion()
 	end
 
-	return M.options.docsets
+	if not current or current == '' then
+		return M.options.install_docsets
+	end
+
+	local possible_values = {}
+	for _, docset in ipairs(M.options.install_docsets) do
+		if string.find(docset, '^' .. current) then
+			table.insert(possible_values, docset)
+		end
+	end
+
+	return possible_values
 end
 
 M._fill_completion = function()
@@ -84,14 +106,14 @@ M._fill_completion = function()
 		return
 	end
 
-	M.options.docsets = {}
+	M.options.install_docsets = {}
 	for line in results:lines() do
 		-- since all lines follow the same pattern
 		-- <script>the_dash_name</script>
 		-- we can just grab the middle value with a simple
 		-- string.sub call.
 		local docset = string.sub(line, 9, -10)
-		table.insert(M.options.docsets, docset)
+		table.insert(M.options.install_docsets, docset)
 	end
 	results:close()
 end
