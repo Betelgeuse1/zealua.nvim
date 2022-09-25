@@ -16,7 +16,7 @@ M.setup = function(user_config)
 	end
 
 	-- user commands
-	vim.api.nvim_create_user_command('Zeal', M.zsearch, { nargs = '?', bang = true })
+	vim.api.nvim_create_user_command('Zeal', M.zsearch, { bang = true })
 	vim.api.nvim_create_user_command('ZealSelect', M.zselect, {})
 	vim.api.nvim_create_user_command('ZealFT', M.zfiletype, { nargs = 1, bar = true, complete = M._completion })
 
@@ -36,14 +36,17 @@ end
 
 M.zsearch = function(cmd)
 	local docset = M._get_docset()
-	local word = cmd.args ~= '' and cmd.fargs[1] or vim.fn.expand('<cword>')
 
-	local search = word
 	if not cmd.bang then
-		search = string.format('%s:%s', docset, word)
+		local word = vim.fn.expand('<cword>')
+		local search = string.format('%s:%s', docset, word)
+		M._launch(search)
+		return
 	end
 
-	M._launch(search)
+	select.search_input(function(input)
+		M._launch(docset .. ':' .. input)
+	end)
 end
 
 M.zselect = function()
