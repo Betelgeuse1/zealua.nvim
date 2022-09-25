@@ -3,6 +3,7 @@ local select = require('zealua.select')
 local M = {}
 
 M.options = {
+	auto_keymaps = false,
 	location = "$HOME/.local/share/Zeal/Zeal/docsets",
 	completion_cmd = "find %s -maxdepth 4 -name Info.plist -exec grep -o -m 1 -E '<string>[a-z]*</string>' {} \\; | uniq",
 	install_docsets = {},
@@ -11,7 +12,7 @@ M.options = {
 
 M.setup = function(user_config)
 	if user_config then
-		vim.tbl_deep_extend("force", M.options, user_config)
+		M.options = vim.tbl_deep_extend("force", M.options, user_config)
 	end
 
 	-- user commands
