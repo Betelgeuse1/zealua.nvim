@@ -10,8 +10,6 @@ M.options = {
 }
 
 M.setup = function(user_config)
-	-- TODO extracts docsets from path and insert in M.docsets
-
 	if user_config then
 		vim.tbl_deep_extend("force", M.options, user_config)
 	end
@@ -23,6 +21,7 @@ M.setup = function(user_config)
 
 	-- keymaps
 	if M.options.auto_keymaps then
+		vim.pretty_print("HELLo")
 		-- Open zeal using <cword> and M.filetype
 		vim.api.nvim_set_keymap('n', 'gz', ':Zeal<CR>', { noremap = true })
 		-- Open zeal select window
@@ -46,11 +45,8 @@ M.zsearch = function(cmd)
 	M._launch(search)
 end
 
--- TODO Asks for both docset and search word (if non -> use <cword>)
--- 		Uses the M.completion for the first argument only (might need some research)
 M.zselect = function()
 	select.open_docset_selector(M._completion, function(docset)
-		print(docset)
 		select.search_input(function(word)
 			M._launch(docset .. ':' .. word)
 		end)
