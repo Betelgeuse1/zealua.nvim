@@ -22,7 +22,6 @@ M.setup = function(user_config)
 
 	-- keymaps
 	if M.options.auto_keymaps then
-		vim.pretty_print("HELLo")
 		-- Open zeal using <cword> and M.filetype
 		vim.api.nvim_set_keymap('n', 'gz', ':Zeal<CR>', { noremap = true })
 		-- Open zeal select window
